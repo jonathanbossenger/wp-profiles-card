@@ -154,5 +154,46 @@ router.get('/users', async (req, res, next) => {
 
 });
 
+/**
+ * Generate user profile JSON
+ * Example: /json?username=rodrigodonini
+ */
+router.get('/json', async (req, res, next) => {
+  let username = req.query.username;
+  if (!username) {
+    return res.status(400).json({ error: 'Missing username parameter' });
+  }
+
+  try {
+    const wpURL = 'https://profiles.wordpress.org/' + username;
+    const userData = await process.processCard(wpURL, username);
+
+    const name = userData["name"];
+    const initials = name.charAt(0) + name.substring(name.lastIndexOf(" ") + 1).charAt(0);
+    const memberSince = userData["memberSince"];
+    const avatar = userData["avatar"];
+
+    // Optionally, you could fetch and encode the avatar as base64 here, but for now, return the URL
+    // If you want to return base64, uncomment the following lines:
+    // const axios = require('axios');
+    // const response = await axios.get(avatar, { responseType: 'arraybuffer' });
+    // const base64 = Buffer.from(response.data, 'binary').toString('base64');
+    // const contentType = response.headers['content-type'];
+    // const avatarBase64 = `data:${contentType};base64,${base64}`;
+
+    const profile = {
+      username: username,
+      name: name,
+      initials: initials,
+      avatar: avatar, // or avatarBase64 if you want base64
+      memberSince: memberSince,
+      badges: userData["badges"] || []
+    };
+
+    res.json({ profile });
+  } catch (err) {
+    res.status(404).json({ error: 'User not found', details: err.message });
+  }
+});
 
 module.exports = router;
