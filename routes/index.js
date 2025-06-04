@@ -16,6 +16,8 @@ const axios = require('axios');
 const avatarPath    = "public/images/avatar/";
 const directoryPath = path.join(__dirname, '../'.concat(avatarPath));
 
+router.options('*', cors());
+
 /**
  * Generate card
  * Params: {
