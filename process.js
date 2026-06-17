@@ -71,16 +71,37 @@ class Process {
     let user   = {};
     let badges = [];
 
-    // Extracting name, avatar, and member since fields
-    const name        = $('header.site-header').find('h2 a').text();
-    const avatar      = $('header.site-header').find('img.avatar').attr('src');
+    // Extracting name, avatar, and member since fields.
+    // The header was redesigned (wp-p2-hero): the name is now a plain <h2> with no
+    // inner <a>, so fall back to the <h2> text. The avatar <img> still carries the
+    // `.avatar` class and member-since markup is unchanged.
+    const header      = $('header.site-header');
+    const name        = (header.find('h2 a').text() || header.find('h2').first().text()).trim();
+    const avatar      = header.find('img.avatar').attr('src');
     const memberSince =  $('#user-meta li').find('#user-member-since strong').text();
 
     // Extracting profile badges
-    $('#user-badges li').each((i, item) => {
+    // WordPress renders each badge as `<span class="medal badge-xxx">` containing
+    // an icon span `.mi` (either a dashicon: `mi dashicons dashicons-yyy`, or a
+    // plain letter for badges that ship a custom SVG) and a name span `.mn`.
+    $('.wp-p2-badges-block .medal').each((i, item) => {
+      const $item = $(item);
+
+      // Badge color class, e.g. "badge-code".
+      const badgeClass = ($item.attr('class') || '').replace('medal', '').trim();
+
+      // Resolve the icon class. When the badge uses a dashicon we keep it (it maps
+      // to a `dashicons-yyy.svg` file); otherwise we fall back to the per-badge SVG
+      // named `dashicons-<badgeClass>.svg`.
+      const miClass    = $item.find('.mi').attr('class') || '';
+      const dashMatch  = miClass.match(/dashicons-[\w-]+/);
+      const iconClass  = dashMatch ? `dashicons ${dashMatch[0]}` : `dashicons-${badgeClass}`;
+
       const badge = {
-        class: $(item).find('.badge').attr('class'),
-        name: $(item).text().trim()
+        // Format kept compatible with renderBadgesSVG: the dashicon class must be
+        // last so the icon filename can be derived from the end of the string.
+        class: `${badgeClass} ${iconClass}`.trim(),
+        name: $item.find('.mn').text().trim()
       }
       if(badge.name !== "")
         badges.push(badge)
